@@ -7,7 +7,6 @@ package com.yahoo.bullet.rest.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
 import com.yahoo.bullet.bql.BulletQueryBuilder;
 import com.yahoo.bullet.bql.parser.ParsingException;
 import com.yahoo.bullet.common.BulletConfig;
