@@ -43,26 +43,4 @@ public class PreprocessingService {
             throw new BQLException(e);
         }
     }
-
-    /**
-     * This function checks if the configured max.concurrent.queries limit has been exceeded.
-     *
-     * @return A boolean indicating whether or not the query limit has been reached.
-     */
-    public boolean queryLimitReached(QueryService queryService) {
-        return queryService.runningQueryCount() >= maxConcurrentQueries;
-    }
-
-    /**
-     * This function determines if the provided query contains a window.
-     *
-     * @param query The query to check. The query must be in JSON format.
-     * @return A boolean indicating whether or not this query contains a window.
-     * @throws JsonSyntaxException if json is not a valid representation for a JSON object.
-     */
-    @SuppressWarnings("unchecked")
-    public boolean containsWindow(String query) throws JsonSyntaxException {
-        Map<String, Object> queryContent = GSON.fromJson(query, Map.class);
-        return queryContent.containsKey(WINDOW_KEY_STRING) && queryContent.get(WINDOW_KEY_STRING) != null;
-    }
 }

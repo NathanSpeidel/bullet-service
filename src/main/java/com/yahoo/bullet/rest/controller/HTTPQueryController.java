@@ -9,7 +9,6 @@ import com.yahoo.bullet.rest.query.BQLError;
 import com.yahoo.bullet.rest.query.BQLException;
 import com.yahoo.bullet.rest.query.HTTPQueryHandler;
 import com.yahoo.bullet.rest.query.QueryError;
-import com.yahoo.bullet.rest.query.SSEQueryHandler;
 import com.yahoo.bullet.rest.service.PreprocessingService;
 import com.yahoo.bullet.rest.service.QueryService;
 import lombok.Setter;
@@ -18,7 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -43,45 +41,12 @@ public class HTTPQueryController {
         String queryID = QueryService.getNewQueryID();
         try {
             query = preprocessingService.convertIfBQL(query);
-            if (preprocessingService.containsWindow(query)) {
-                queryHandler.fail(QueryError.UNSUPPORTED_QUERY);
-            } else if (preprocessingService.queryLimitReached(queryService)) {
-                queryHandler.fail(QueryError.TOO_MANY_QUERIES);
-            } else {
-                queryService.submit(queryID, query, queryHandler);
-            }
+            queryService.submit(queryID, query, queryHandler);
         } catch (BQLException e) {
             queryHandler.fail(new BQLError(e));
         } catch (Exception e) {
             queryHandler.fail(QueryError.INVALID_QUERY);
         }
         return queryHandler.getResult();
-    }
-
-    /**
-     * The method that handles SSE POSTs to this endpoint. Consumes the HTTP request, invokes {@link QueryService} to
-     * register and transmit the query to Bullet.
-     *
-     * @param query The JSON query.
-     * @return A {@link SseEmitter} to send streaming results.
-     */
-    @PostMapping(value = "${bullet.endpoint.sse}", consumes = { MediaType.TEXT_PLAIN_VALUE }, produces = { MediaType.APPLICATION_JSON_VALUE })
-    public SseEmitter submitSSEQuery(@RequestBody String query) {
-        SseEmitter sseEmitter = new SseEmitter();
-        String queryID = QueryService.getNewQueryID();
-        SSEQueryHandler sseQueryHandler = new SSEQueryHandler(queryID, sseEmitter, queryService);
-        try {
-            query = preprocessingService.convertIfBQL(query);
-            if (preprocessingService.queryLimitReached(queryService)) {
-                sseQueryHandler.fail(QueryError.TOO_MANY_QUERIES);
-            } else {
-                queryService.submit(queryID, query, sseQueryHandler);
-            }
-        } catch (BQLException e) {
-            sseQueryHandler.fail(new BQLError(e));
-        } catch (Exception e) {
-            sseQueryHandler.fail(QueryError.INVALID_QUERY);
-        }
-        return sseEmitter;
     }
 }

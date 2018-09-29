@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class QueryService {
     // Exposed for testing only.
     @Getter(AccessLevel.PACKAGE)
-    private ConcurrentMap<String, QueryHandler> runningQueries;
+    //private ConcurrentMap<String, QueryHandler> runningQueries;
     private List<PubSubReader> consumers;
     private RandomPool<Publisher> publisherRandomPool;
 
@@ -47,9 +47,9 @@ public class QueryService {
     public QueryService(List<Publisher> publishers, List<Subscriber> subscribers, @Value("${bullet.pubsub.sleep-ms}") int sleep) {
         Objects.requireNonNull(publishers);
         Objects.requireNonNull(subscribers);
-        runningQueries = new ConcurrentHashMap<>();
+        //runningQueries = new ConcurrentHashMap<>();
         publisherRandomPool = new RandomPool<>(publishers);
-        consumers = subscribers.stream().map(x -> new PubSubReader(x, runningQueries, sleep)).collect(Collectors.toList());
+        consumers = subscribers.stream().map(x -> new PubSubReader(x, sleep)).collect(Collectors.toList());
     }
 
     /**
@@ -63,29 +63,11 @@ public class QueryService {
         Publisher publisher = publisherRandomPool.get();
         try {
             publisher.send(queryID, query);
-            runningQueries.put(queryID, queryHandler);
+            //runningQueries.put(queryID, queryHandler);
             queryHandler.acknowledge();
         } catch (Exception e) {
             queryHandler.fail(QueryError.SERVICE_UNAVAILABLE);
         }
-    }
-
-    /**
-     * Submit a signal query to Bullet.
-     *
-     * @param queryID The query ID to register request with.
-     * @param signal The {@link Signal} to be submitted.
-     */
-    public void submitSignal(String queryID, Signal signal) {
-        Publisher publisher = publisherRandomPool.get();
-        try {
-            Metadata metadata = new Metadata(signal, null);
-            PubSubMessage message = new PubSubMessage(queryID, null, metadata);
-            publisher.send(message);
-        } catch (Exception e) {
-            // Ignore failure.
-        }
-        runningQueries.remove(queryID);
     }
 
     /**
@@ -94,8 +76,8 @@ public class QueryService {
     @PreDestroy
     public void close() {
         consumers.forEach(PubSubReader::close);
-        runningQueries.values().forEach(QueryHandler::fail);
-        runningQueries.clear();
+        //runningQueries.values().forEach(QueryHandler::fail);
+        //runningQueries.clear();
         publisherRandomPool.clear();
     }
 
@@ -106,14 +88,5 @@ public class QueryService {
      */
     public static String getNewQueryID() {
         return UUID.randomUUID().toString();
-    }
-
-    /**
-     * Get the number of running queries.
-     *
-     * @return The number of running queries.
-     */
-    public int runningQueryCount() {
-        return runningQueries.size();
     }
 }
