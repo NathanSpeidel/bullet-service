@@ -12,8 +12,10 @@ import com.yahoo.bullet.rest.query.QueryError;
 import com.yahoo.bullet.rest.query.SSEQueryHandler;
 import com.yahoo.bullet.rest.service.BackendStatusService;
 import com.yahoo.bullet.rest.service.PreprocessingService;
+import com.yahoo.bullet.rest.service.QueryReplayService;
 import com.yahoo.bullet.rest.service.QueryService;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.concurrent.CompletableFuture;
 
-@RestController
+@RestController @Slf4j
 public class HTTPQueryController {
     @Autowired @Setter
     private QueryService queryService;
@@ -33,6 +35,9 @@ public class HTTPQueryController {
 
     @Autowired
     private BackendStatusService backendStatusService;
+
+    @Autowired
+    private QueryReplayService queryReplayService;
 
     /**
      * The method that handles POSTs to this endpoint. Consumes the HTTP request, invokes {@link QueryService} to
@@ -58,6 +63,8 @@ public class HTTPQueryController {
                 queryHandler.fail(QueryError.TOO_MANY_QUERIES);
             } else {
                 queryService.submit(queryID, query, queryHandler);
+                log.info("In new artifact - submitting query to queryReplayService.");
+                queryReplayService.submit(queryID, query);
             }
         } catch (BQLException e) {
             queryHandler.fail(new BQLError(e));
@@ -89,6 +96,8 @@ public class HTTPQueryController {
                 sseQueryHandler.fail(QueryError.TOO_MANY_QUERIES);
             } else {
                 queryService.submit(queryID, query, sseQueryHandler);
+                log.info("In new artifact - submitting query to queryReplayService.");
+                queryReplayService.submit(queryID, query);
             }
         } catch (BQLException e) {
             sseQueryHandler.fail(new BQLError(e));
